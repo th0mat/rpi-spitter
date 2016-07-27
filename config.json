@@ -1,0 +1,46 @@
+{
+  "session": {
+    "location": "home",
+    "title": "default"
+  },
+  "sniffer": {
+    "device": "mon0",
+    "bpf": "",
+    "periodLength": 1,
+    "maxPkts": 0
+  },
+  "hopper": {
+    "hop": false,
+    "hops_per_sec": 10,
+    "channels": "1 3 5 7 9"
+  },
+  "db": {
+    "dbname": "test1",
+    "host": "localhost",
+    "user": "postgres",
+    "password": "setInEnvVar DBPWD",
+    "hostaddr": "127.0.0.1",
+    "port": "5432"
+  },
+  "output": {
+    "screen": {
+      "packets": false,
+      "period_header": false,
+      "period_details": false,
+      "period_JSON": true
+    },
+    "log_file": {
+      "packets": false,
+      "periods": false,
+      "dir": "/users/thomasnatter/log/spitter/"
+    },
+    "postgres": {
+      "packets": false,
+      "periods": false
+    }
+  },
+  "file": {
+    "read_pcap_file": false,
+    "file_name": "/users/thomasnatter/Dropbox/scripts/notebooks/data/10kprobes.pcap"
+  }
+}
