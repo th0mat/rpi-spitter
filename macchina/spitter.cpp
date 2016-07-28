@@ -90,20 +90,23 @@ int startSpitting() {
         return (2);
     }
 
+    if (pcap_can_set_rfmon(handle) != 1)  std::cout << "***can't set rfmon\n";
+
     // set monitor mode
     if (pcap_set_rfmon(handle, 1) != 0) {
         printf("pcap_set_rfmon failed");
     }
 
-    if (pcap_set_snaplen(handle, -1) !=0) {
+    if (pcap_set_snaplen(handle, 65535) !=0) {
         printf("pcap_set_snaplen failed");
     };          // -1: full pkt
     if (pcap_set_timeout(handle, 500) !=0) {
         printf("pcap_set_timeout failed");
     };         // millisec
     int status = pcap_activate(handle);
-    printf("pcap_activate status: %d \n", status);
+    printf("***pcap_activate status returned: %d \n", status);
 
+    printf("***made it to here 2\n");
 
     // check for link layer
     if (pcap_datalink(handle) != 127) {
@@ -121,6 +124,7 @@ int startSpitting() {
         return (2);
     }
     // start channel hopping
+
     if (Config::get().hop) {
         std::thread t1(hop);
         t1.detach();
@@ -128,6 +132,8 @@ int startSpitting() {
     // log session entry
     if (Config::get().outPgPeriods || Config::get().outPgPkts) dbLogSession();
     // enter loop
+    printf("***made it to here 3\n");
+    std::cout << "***pcap_geterr: " << pcap_geterr(handle);
     pcap_loop(handle, Config::get().maxPkts, rawHandler, nullptr);        // -1: no pkt number limit
     pcap_close(handle);
     if (Config::get().hop) {

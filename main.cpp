@@ -36,9 +36,11 @@ void signalHandler( int signum ) {
 
 
 // program start
-int main(int argc, char* argv[]) {
+int main() {
+    std::cout << "*****************starting spitter\n";
     std::signal(SIGINT, signalHandler);
     configHandlers(packetHandler, summaryHandler);
+    //return 1;
     startSpitting();
 }
 
