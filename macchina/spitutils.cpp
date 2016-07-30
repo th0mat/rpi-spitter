@@ -20,7 +20,7 @@ typedef std::chrono::time_point<system_clock> t_point;
 
 void getAddresses(const Packet& pkt, int macPktLength, std::string& addr1, std::string& addr2, std::string& addr3);
 
-std::string longToHex(const long& mac64) {
+std::string longToHex(const uint64_t& mac64) {
     std::stringstream stream;
     stream << std::setfill('0') << std::setw(12) << std::hex << mac64;
     return stream.str();
@@ -29,7 +29,7 @@ std::string longToHex(const long& mac64) {
 
 void screenPrintPeriodDetails(const Summary& summary) {
     char timeStamp[100];
-    time_t tt = summary.periodEnd.time_since_epoch().count() / 1000000;
+    time_t tt = summary.periodEnd.time_since_epoch().count() / 1000000000;
     std::strftime(timeStamp, sizeof(timeStamp), "%Y-%m-%d %H:%M.%S", std::localtime(&tt));
     for (auto ptr = summary.stations.begin(); ptr != summary.stations.end(); ptr++) {
         printf("%s ----  %-20s  KB/s: %8.2f\n",
@@ -64,7 +64,7 @@ void screenPrintPeriodJSON(const Summary& summary) {
 
 void screenPrintPeriodHeader(const Summary& summary) {
     char timeStamp[100];
-    time_t tt = summary.periodEnd.time_since_epoch().count() / 1000000;
+    time_t tt = summary.periodEnd.time_since_epoch().count() / 1000000000;
     std::strftime(timeStamp, sizeof(timeStamp), "%Y-%m-%d %H:%M.%S", std::localtime(&tt));
     printf("%s  %3d secs | %3d sta | val/s %8.2f pkts %8.2f kb | corr/s  %8.2f pkts %8.2f kb | %s\n",
            timeStamp,
@@ -106,7 +106,7 @@ void txtLogPeriodDetails(const Summary& summary) {
     std::ofstream ofs{fileName, std::ofstream::app};
     char timeStamp[100];
     char buffer[100];
-    time_t tt = summary.periodEnd.time_since_epoch().count() / 1000000;
+    time_t tt = summary.periodEnd.time_since_epoch().count() / 1000000000;
     std::strftime(timeStamp, sizeof(timeStamp), "%Y-%m-%d %H:%M.%S", std::localtime(&tt));
     for (auto ptr = summary.stations.begin(); ptr != summary.stations.end(); ptr++) {
         sprintf(buffer, "%s %4d | %-12s | %s   %-15s | %9.3f \n",
@@ -131,7 +131,8 @@ void txtLogPeriodHeader(const Summary& summary) {
     }
     char buffer[200];
     char timeStamp[100];
-    time_t tt = summary.periodEnd.time_since_epoch().count() / 1000000;
+    // todo: parametrize divisor
+    time_t tt = summary.periodEnd.time_since_epoch().count() / 1000000000;
     std::strftime(timeStamp, sizeof(timeStamp), "%Y-%m-%d %H:%M.%S", std::localtime(&tt));
     sprintf(buffer, "%s  %3d secs | %3d sta | valid: %8.2f pkt/s %8.2f kb/s | corr:  %8.2f pkt/s %8.2f kb/s | %s\n",
             timeStamp,
@@ -247,17 +248,17 @@ namespace {
         return *mycnx().pwork;
     }
 
-    bool recentlySeen(long mac) {
-        static std::set<long> recent{};
+    bool recentlySeen(uint64_t mac) {
+        static std::set<uint64_t> recent{};
         if (recent.find(mac) != recent.end()) return true;
         recent.insert(mac);
         return false;
     }
 
-    void dbRegisterMacIfNew(pqxx::work& w, const long mac) {
+    void dbRegisterMacIfNew(pqxx::work& w, const uint64_t mac) {
         if (recentlySeen(mac)) return;
         char hexmac[20];
-        sprintf(hexmac, "%012lX", mac);
+        sprintf(hexmac, "%012llX", mac);
         w.prepared("registerMac")
                         (mac)
                         (std::string(hexmac))
@@ -279,12 +280,12 @@ void dbLogSession() {
 }
 
 void dbLogPeriod(const Summary& summary) {
-    long periodId = -1;
+    int64_t periodId = -1;
     auto& work = pqwork();
 
     pqxx::result r = work.prepared("periods")
                     (Config::get().currentSessionId)
-                    (summary.periodEnd.time_since_epoch().count() / 1000000)
+                    (summary.periodEnd.time_since_epoch().count() / 1000000000)
                     (summary.valid.packets)
                     (summary.corrupted.packets)
                     (summary.valid.bytes)
@@ -338,11 +339,11 @@ void getAddresses(const Packet& pkt, int macPktLength, std::string& addr1, std::
 void dbLogPacket(const Packet& pkt) {
     auto& work = pqwork();
 
-    long addr1{0};
-    long addr2{0};
-    long addr3{0};
+    uint64_t addr1{0};
+    uint64_t addr2{0};
+    uint64_t addr3{0};
     int macPktLength = pkt.lengthInclRadioTap - pkt.radioTapHeader->length;
-    double timeStamp = pkt.timeStampMicroSecs * 1.0 / 1000000;
+    double timeStamp = pkt.timeStampMicroSecs * 1.0 / 1000000000;
 
     if (pkt.crc) {
         if (macPktLength >= 14) {

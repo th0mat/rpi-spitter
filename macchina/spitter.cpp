@@ -17,7 +17,7 @@ volatile bool keepHopping = true;
 
 bool crc32(const pcap_pkthdr* header, const u_char* packet);
 
-short getRadioTapLength(const u_char* packet);
+u_short getRadioTapLength(const u_char* packet);
 
 uint32_t crc32buf(char* buf, size_t len);
 
@@ -57,7 +57,7 @@ StaData::StaData() : packets{0}, bytes{0} { };
 /* loop callback function - set in pcap_loop() */
 void rawHandler(u_char* args, const pcap_pkthdr* header, const u_char* packet) {
     bool crc = crc32(header, packet);
-    long timeStampMicroSecs = header->ts.tv_sec * 1000000 + header->ts.tv_usec;
+    uint64_t timeStampMicroSecs = (uint64_t) header->ts.tv_sec * 1000000 + header->ts.tv_usec;
     int lengthInclRadioTap = header->len;
     const MacHeader* const_mac = reinterpret_cast<const MacHeader*>(packet + getRadioTapLength(packet));
     MacHeader* mac = const_cast<MacHeader*>(const_mac);
@@ -97,7 +97,7 @@ int startSpitting() {
         printf("pcap_set_rfmon failed");
     }
 
-    if (pcap_set_snaplen(handle, 65535) !=0) {
+    if (pcap_set_snaplen(handle, 100) !=0) {
         printf("pcap_set_snaplen failed");
     };          // -1: full pkt
     if (pcap_set_timeout(handle, 500) !=0) {
@@ -144,20 +144,28 @@ int startSpitting() {
 }
 
 bool crc32(const pcap_pkthdr* header, const u_char* packet) {
+    // todo: tweak for shorter ratiotap headers
     if (header->caplen < 39) return false;        // min 14 for pkt and 25 for radiotap
     u_short radio = getRadioTapLength(packet);
     if (radio > rt::MAX_RADIOTAP_LENGTH || radio < rt::MIN_RADIOTAP_LENGTH) return false;
     if ((header->caplen - radio) < rt::MIN_MAC_LENGTH) return false;
+    return true;
     u_char* tmp = const_cast<u_char*>(packet);  // crc32buf expects non-const
-    char* tmp2 = reinterpret_cast<char*>(tmp);  // can't go from u_char* directly to *int
+    std::cout << "***packet addr : " << (void*) packet << "\n";
+    //char* tmp2 = reinterpret_cast<char*>(tmp);  // can't go from u_char* directly to *int
+    char* tmp2 = (char*)tmp;  // can't go from u_char* directly to *int
     // and need unsigned int (= return val
     // of crc32buf)
     int* present = reinterpret_cast<int*>(tmp2 + header->caplen - 4);
+
     int calculated = crc32buf(tmp2 + radio, header->caplen - radio - 4);
+    std::cout << "***present addr: " << (void*) present << "\n";
+    std::cout << "***caplen: " << header->caplen << "\n";
+    std::cout << "***calc:pres  " << calculated << " : " << *present  << "\n";
     return calculated == *present;
 }
 
-short getRadioTapLength(const u_char* packet) {
+u_short getRadioTapLength(const u_char* packet) {
     const RadioTapHeader* rth = reinterpret_cast<const RadioTapHeader*>(packet);
     const u_short result = rth->length;
     return result;
@@ -166,7 +174,7 @@ short getRadioTapLength(const u_char* packet) {
 void checkPeriod(const pcap_pkthdr* header) {
     static bool firstPkt = true;
     auto nowTime = std::chrono::time_point<std::chrono::system_clock>() +
-                   std::chrono::microseconds(header->ts.tv_usec + header->ts.tv_sec * 1000000);
+                   std::chrono::microseconds(header->ts.tv_usec + (uint64_t) header->ts.tv_sec * 1000000);
     if (Config::get().readPcapFile && firstPkt) {
         current->periodEnd = nowTime + std::chrono::seconds(Config::get().periodLength) -
                 std::chrono::microseconds(header->ts.tv_usec);
@@ -232,16 +240,16 @@ namespace PktTypes {
     const std::vector<int> t2{0, 2, 1, 0};
 };
 
-long addressToLong(const u_char* p) {
+uint64_t addressToLong(const u_char* p) {
     u_char tmp[8]{};
     // leave tmp[6] and tmp[7] = 0;
     for (int i = 0; i < 6; i++) {
         tmp[5 - i] = p[i];
     }
-    return *(reinterpret_cast<long*>(&tmp));
+    return *(reinterpret_cast<uint64_t*>(&tmp));
 }
 
-long getStaAddr(const Packet& pkt) {
+uint64_t getStaAddr(const Packet& pkt) {
     int no = 0;
     if (pkt.macHeader->type == 0) { no = PktTypes::t0[pkt.macHeader->subtype]; }
     // if (pkt.macHeader.type == 1) { no = PktTypes::t1[pkt.macHeader.subtype]; } // excluded already
@@ -269,7 +277,7 @@ void addToSummary(const Packet& pkt) {
     if (pkt.macHeader->type == 1) return; // exclude control frames from STA identification
     if (pkt.macHeader->type == 2 && pkt.macHeader->toFromDs == 0) return; // exclude data frames not to/from STA
     if (pkt.macHeader->type == 2 && pkt.macHeader->toFromDs == 3) return; // exclude data frames not to/from STA
-    long sta = getStaAddr(pkt);
+    uint64_t sta = getStaAddr(pkt);
     auto ptr = current->stations.find(sta);
     if (ptr != current->stations.end()) {
         ptr->second.packets += 1;

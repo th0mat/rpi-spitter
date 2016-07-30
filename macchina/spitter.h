@@ -29,18 +29,19 @@ struct Summary {
     StaData valid;  // incl control frames (which are excluded in the STA numbers)
     std::string location;
     std::chrono::time_point<std::chrono::system_clock> periodEnd;
-    std::map<long, StaData> stations;
+    std::map<uint64_t, StaData> stations;
 };
 
 
 struct RadioTapHeader {
+    // todo: automate the location of channelFreq based on present flags ... currently manual
     u_char version;    // set to 0
     u_char pad;
     u_short length;    // entire length
 //    u_int present;     // fields present
     unsigned firstFour: 4;  // must be all '1' for inBetween to be correct
     unsigned restFlag: 28; // 28 + 64 + 8 + 8
-    u_int64_t tsft;
+//    u_int64_t tsft;
     u_char flags;
     u_char rate;
     u_short channelFreq;
@@ -76,7 +77,7 @@ struct MacHeader {
 
 struct Packet {
     bool crc;
-    long timeStampMicroSecs;  // in micorsec unix time
+    uint64_t timeStampMicroSecs;  // in microsec unix time
     int lengthInclRadioTap;
     RadioTapHeader* radioTapHeader;
     MacHeader* macHeader;
@@ -85,7 +86,7 @@ struct Packet {
 void readPcapFileLoop();
 void configHandlers(void (*pktHandler)(const Packet&), void (*summaryHandler)(const Summary&));
 int startSpitting();
-long addressToLong(const u_char*);
+uint64_t addressToLong(const u_char*);
 void hop();
 
 

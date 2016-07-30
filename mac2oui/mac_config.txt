@@ -8,7 +8,7 @@ d8:3c:69:c1:88:81	NIM_Wiko
 f0:6b:ca:2a:00:14	TOM_TabS8  
 08:ec:a9:ce:83:b0	TOM_TabS9
 04:0c:ce:dd:e9:f2	TOM_Air
-f4:09:d8:78:fc:7e	TOM_Alpha
+ac:5f:3e:ef:d2:d3	TOM_Galaxy
 50:cc:f8:2a:f7:0e	TOM_Sam
 50:46:5d:1a:b5:c7	NEMA_Nexus
 4c:a5:6d:2e:03:d5	NEMA_Sam

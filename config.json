@@ -6,12 +6,12 @@
   "sniffer": {
     "device": "wlan0",
     "bpf": "",
-    "periodLength": 10,
+    "periodLength": 20,
     "maxPkts": 0
   },
   "hopper": {
     "hop": false,
-    "hops_per_sec": 10,
+    "hops_per_sec": 5,
     "channels": "1 3 5 7 9"
   },
   "db": {
@@ -24,8 +24,8 @@
   },
   "output": {
     "screen": {
-      "packets": true,
-      "period_header": true,
+      "packets": false,
+      "period_header": false,
       "period_details": true,
       "period_JSON": false
     },

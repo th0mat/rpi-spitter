@@ -9,7 +9,7 @@
 #include "spitter.h"
 
 
-std::string longToHex(const long&);
+std::string longToHex(const uint64_t&);
 
 void txtLogPeriodDetails(const Summary&);
 void txtLogPeriodHeader(const Summary&);
